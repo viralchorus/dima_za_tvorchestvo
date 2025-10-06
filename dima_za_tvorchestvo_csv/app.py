@@ -140,7 +140,7 @@ if st.button("И чё у нас в итоге?"):
                 <div class="spark">✦</div>
                 <div class="spark">✦</div>
             </div>
-            <p style="text-align:center; color:#777;">Ооо нихуя</p>
+            <p style="text-align:center; color:#777;">ООО НИХУЯ!!</p>
             """, unsafe_allow_html=True)
 
         # 🧾 Добавляем результат в CSV — независимо от оценки
