@@ -58,7 +58,9 @@ forms = category_forms[category]
 # Поля для ввода объекта оценки
 # -----------------------------
 name = st.text_input(f"Введите название {forms['who']}:")
-artist = st.text_input("Введите псевдоним исполнителя (если есть):")
+artist = ""
+if category in ["Трек", "Альбом"]:
+    artist = st.text_input("Введите псевдоним исполнителя:")
 
 # -----------------------------
 # Слайдеры
@@ -120,7 +122,9 @@ if not category_df.empty:
     sorted_df = category_df.sort_values(by="Баллы", ascending=False).reset_index(drop=True)
     sorted_df.index += 1
     for i, row in sorted_df.iterrows():
-        artist_part = f" — {row['Исполнитель']}" if 'Исполнитель' in row and pd.notna(row['Исполнитель']) and row['Исполнитель'] else ""
+        artist_part = ""
+        if category in ["Трек", "Альбом"] and "Исполнитель" in row and pd.notna(row["Исполнитель"]) and row["Исполнитель"]:
+            artist_part = f" — {row['Исполнитель']}"
         st.markdown(f"{i}. {row['Название']}{artist_part} — 🎯 {row['Баллы']} / 90")
         if row["Рецензия"]:
             with st.expander(f"Показать рецензию ({row['Оценщик']})"):
