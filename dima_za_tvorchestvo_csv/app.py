@@ -3,16 +3,25 @@ import pandas as pd
 import os
 import shutil
 
+# -----------------------------
+# Настройки
+# -----------------------------
 CSV_FILE = "ratings.csv"
 BACKUP_FILE = "ratings_backup.csv"
 
+# -----------------------------
+# Функция вычисления оценки
+# -----------------------------
 def flomaster_score(R, S, T, H, V):
     B = R + S + T + H
     B_prime = B * 1.4
     M = 1.0 + ((V - 1) / 9) * (1.6072 - 1.0)
     return int(round(B_prime * M))
 
-EXPECTED_COLS = ["Категория","Название","Исполнитель","Баллы","Рецензия","Заголовок","Оценщик","R","S","T","H","V"]
+# -----------------------------
+# Структура CSV
+# -----------------------------
+EXPECTED_COLS = ["Категория", "Название", "Исполнитель", "Баллы", "Заголовок", "Рецензия", "Оценщик", "R", "S", "T", "H", "V"]
 
 def ensure_df_columns(df):
     for c in EXPECTED_COLS:
@@ -20,6 +29,9 @@ def ensure_df_columns(df):
             df[c] = ""
     return df[EXPECTED_COLS]
 
+# -----------------------------
+# Инициализация CSV
+# -----------------------------
 if not os.path.exists(CSV_FILE) or os.path.getsize(CSV_FILE) == 0:
     df = pd.DataFrame(columns=EXPECTED_COLS)
     df.to_csv(CSV_FILE, index=False)
@@ -59,17 +71,21 @@ H = st.slider("💫 Индивидуальность / Харизма", 1, 10, 5
 
 st.markdown("### 🌌 Атмосфера / Вайб")
 st.markdown(
-    "<div style='padding:8px; border:2px solid #6C63FF; border-radius:10px; background-color:#F3F0FF; color:#000000;'>"
+    "<div style='padding:8px; border:2px solid #6C63FF; border-radius:10px; background-color:#F3F0FF;'>"
     "<b>Чем сильнее вайб — тем вкуснее квас. Этот критерий влияет на множитель общей оценки, бро!</b></div>",
     unsafe_allow_html=True,
 )
 V = st.slider("🌌 Атмосфера / Вайб", 1, 10, 5)
 
 current_score = flomaster_score(R, S, T, H, V)
-st.markdown(f"<div style='text-align:center;'>🔮 Промежуточный результат: <b>{current_score} / 90</b></div>", unsafe_allow_html=True)
+st.markdown(
+    f"<div style='text-align:center; margin-top:14px;'>"
+    f"<span style='font-size:18px; color:#6C63FF;'>🔮 Промежуточный результат: <b>{current_score} / 90</b></span>"
+    f"</div>", unsafe_allow_html=True
+)
 
 reviewer = st.text_input("Введите свой никнейм:")
-title_text = st.text_input("🖋 Введите заголовок рецензии:")
+title_text = st.text_input("🎯 Заголовок рецензии (по желанию):")
 review_text = st.text_area("✍️ Напиши рецензию (по желанию):")
 
 if st.button("И чё у нас в итоге?"):
@@ -78,21 +94,28 @@ if st.button("И чё у нас в итоге?"):
     else:
         score = flomaster_score(R, S, T, H, V)
         st.success(f"Итоговая оценка для {forms['who']} {name}: {score} / 90 🎯")
+        st.balloons()
+
+        if score == 90:
+            st.markdown(
+                "<div class='vkusnyashka'>🍻 Вкусняшка от Дмитрия Кузнецова!</div>"
+                "<p style='text-align:center; color:#777; font-weight:bold;'>ООО НИХУЯ!!</p>", unsafe_allow_html=True
+            )
 
         new_row = {
             "Категория": category,
             "Название": name.strip(),
-            "Исполнитель": artist.strip(),
+            "Исполнитель": artist.strip() if isinstance(artist, str) else "",
             "Баллы": int(score),
-            "Рецензия": review_text.strip(),
             "Заголовок": title_text.strip(),
+            "Рецензия": review_text.strip(),
             "Оценщик": reviewer.strip() if reviewer.strip() else "Серая мышь (Не зареган)",
             "R": int(R), "S": int(S), "T": int(T), "H": int(H), "V": int(V)
         }
+
         df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
         df = ensure_df_columns(df)
         df.to_csv(CSV_FILE, index=False)
-        st.balloons()
 
 filtered_df = df[df["Категория"] == category].copy()
 if not filtered_df.empty:
@@ -102,21 +125,32 @@ if not filtered_df.empty:
     filtered_df.index += 1
 
     for i, row in filtered_df.iterrows():
-        artist_part = f" — {row['Исполнитель']}" if row['Исполнитель'] else ""
+        artist_part = f" — {row['Исполнитель']}" if isinstance(row["Исполнитель"], str) and row["Исполнитель"].strip() else ""
         st.markdown(f"{i}. {row['Название']}{artist_part} — {int(row['Баллы'])} / 90")
 
         if isinstance(row["Рецензия"], str) and row["Рецензия"].strip():
-            with st.expander(row["Заголовок"] if row["Заголовок"] else "🗒 Читать рецензию"):
+            with st.expander("🗒 Читать рецензию"):
+                if row["Заголовок"]:
+                    st.markdown(f"### {row['Заголовок']}")
                 st.write(row["Рецензия"])
                 st.markdown("---")
-               try:
-    st.markdown(
-        f"🎭 Рифмы / Образы: {int(row['R'])}/10  \n"
-        f"🎵 Структура / Ритмика: {int(row['S'])}/10  \n"
-        f"🔥 Реализация стиля: {int(row['T'])}/10  \n"
-        f"💫 Индивидуальность / Харизма: {int(row['H'])}/10  \n"
-        f"🌌 Атмосфера / Вайб: {int(row['V'])}/10"
-    )
+                try:
+                    st.markdown(
+                        f"🎭 Рифмы / Образы: **{int(row['R'])}/10**  
+"
+                        f"🎵 Структура / Ритмика: **{int(row['S'])}/10**  
+"
+                        f"🔥 Реализация стиля: **{int(row['T'])}/10**  
+"
+                        f"💫 Индивидуальность / Харизма: **{int(row['H'])}/10**  
+"
+                        f"🌌 Атмосфера / Вайб: **{int(row['V'])}/10**"
+                    )
+                except Exception:
+                    st.info("🧩 Подробные оценки не найдены.")
+
+                if int(row["Баллы"]) == 90:
+                    st.markdown("<div style='text-align:right; opacity:0.45; color:#ffcc33; font-weight:bold; margin-top:6px;'>🍻 Вкусняшка</div>", unsafe_allow_html=True)
                 st.caption(f"Оценил: {row['Оценщик']}")
         else:
             st.caption(f"Оценил: {row['Оценщик']}")
@@ -151,19 +185,21 @@ if admin_code == "characterai":
                 new_H = st.number_input("H", 1, 10, safe_int(r["H"]), key=f"H_{orig_idx}")
                 new_V = st.number_input("V", 1, 10, safe_int(r["V"]), key=f"V_{orig_idx}")
 
-                if st.button("💾 Сохранить изменения", key=f"save_{orig_idx}"):
-                    recalculated = flomaster_score(new_R, new_S, new_T, new_H, new_V)
-                    df.loc[orig_idx, ["Категория","Название","Исполнитель","Заголовок","Рецензия","Оценщик"]] = [new_cat, new_name, new_artist, new_title, new_review, new_reviewer]
-                    df.loc[orig_idx, ["R","S","T","H","V","Баллы"]] = [new_R,new_S,new_T,new_H,new_V,recalculated]
-                    df.to_csv(CSV_FILE, index=False)
-                    st.success("✅ Изменения сохранены.")
+                col1, col2 = st.columns(2)
+                with col1:
+                    if st.button("💾 Сохранить изменения", key=f"save_{orig_idx}"):
+                        recalculated = flomaster_score(new_R, new_S, new_T, new_H, new_V)
+                        df.loc[orig_idx, ["Категория","Название","Исполнитель","Заголовок","Рецензия","Оценщик"]] = [new_cat, new_name, new_artist, new_title, new_review, new_reviewer]
+                        df.loc[orig_idx, ["R","S","T","H","V","Баллы"]] = [new_R,new_S,new_T,new_H,new_V,recalculated]
+                        df.to_csv(CSV_FILE, index=False)
+                        st.success("✅ Изменения сохранены.")
+                with col2:
+                    if st.button("🗑 Удалить", key=f"del_{orig_idx}"):
+                        df = df.drop(index=orig_idx)
+                        df.to_csv(CSV_FILE, index=False)
+                        st.warning("❌ Запись удалена.")
 
-                if st.button("🗑 Удалить", key=f"del_{orig_idx}"):
-                    df = df.drop(index=orig_idx)
-                    df.to_csv(CSV_FILE, index=False)
-                    st.warning("❌ Запись удалена.")
-
-        st.markdown("### 🩹 Восстановление данных")
+        st.markdown("### 🩹 Обслуживание данных")
         if st.button("🩹 Восстановить таблицу данных"):
             try:
                 if os.path.exists(CSV_FILE):
@@ -174,11 +210,12 @@ if admin_code == "characterai":
                 for col in ["R","S","T","H","V"]:
                     if col not in df_repair.columns:
                         df_repair[col] = 5
+                for col in ["R","S","T","H","V"]:
+                    df_repair[col] = pd.to_numeric(df_repair[col], errors="coerce").fillna(5).astype(int)
+
                 df_repair.to_csv(CSV_FILE, index=False)
                 st.success("🎨 Таблица успешно восстановлена!")
             except Exception as e:
                 st.error(f"⚠️ Ошибка: {e}")
-    else:
-        st.info("Нет данных для отображения.")
 
 st.markdown("<div style='text-align:center; margin-top:60px; color:#999;'># мыши всегда ниже</div>", unsafe_allow_html=True)
