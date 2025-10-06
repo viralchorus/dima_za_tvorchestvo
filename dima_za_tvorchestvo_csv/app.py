@@ -142,8 +142,23 @@ st.markdown("---")
 admin_code = st.text_input("🔐 Код администратора:", type="password")
 
 if admin_code == "characterai":
-    st.subheader("🧩 Админ-панель")
-    st.write("Вы можете удалять отдельные рецензии.")
+    st.markdown(
+        """
+        <div style='
+            background-color: #f8f8f8;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 10px;
+        '>
+        <h4 style='color: #555; margin-bottom: 10px;'>🧩 Админ-панель</h4>
+        <p style='font-size: 14px; color: #777;'>
+        (Невидимая зона для квасного хранителя — обычные мыши сюда не заглядывают 🐭)
+        </p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
     if not df.empty:
         for i, row in df.iterrows():
@@ -151,11 +166,14 @@ if admin_code == "characterai":
                 st.write(f"Исполнитель: {row['Исполнитель']}")
                 st.write(f"Рецензия: {row['Рецензия']}")
                 st.write(f"Оценщик: {row['Оценщик']}")
+
+                # Кнопка удаления без появления ошибки
                 if st.button(f"🗑 Удалить запись #{i+1}", key=f"delete_{i}"):
                     df = df.drop(index=i)
                     df.to_csv(CSV_FILE, index=False)
                     st.success("✅ Рецензия удалена!")
-                    st.experimental_rerun()
+                    st.session_state["refresh_flag"] = True
+                    st.rerun()
     else:
         st.info("Нет данных для отображения.")
 
