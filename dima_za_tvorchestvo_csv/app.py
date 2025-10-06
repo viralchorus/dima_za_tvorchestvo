@@ -112,7 +112,7 @@ if st.button("И чё у нас в итоге?"):
             }
             @keyframes spark {
               0%, 100% { opacity: 0; transform: scale(0.8) translateY(0px); }
-              50% { opacity: 0.5; transform: scale(1) translateY(-6px); }
+              50% { opacity: 0.6; transform: scale(1) translateY(-6px); }
             }
             .vkusnyashka {
               animation: softGlow 3s ease-in-out infinite;
@@ -128,7 +128,7 @@ if st.button("И чё у нас в итоге?"):
               font-size: 14px;
               color: #ffe680;
               opacity: 0.6;
-              animation: spark 2s infinite;
+              animation: spark 2.4s ease-in-out infinite;
             }
             .spark:nth-child(1) { left: 30%; animation-delay: 0s; }
             .spark:nth-child(2) { left: 50%; animation-delay: 0.6s; }
@@ -169,17 +169,15 @@ if not filtered_df.empty:
         artist_part = f" — {row['Исполнитель']}" if isinstance(row["Исполнитель"], str) and row["Исполнитель"].strip() else ""
         st.markdown(f"{i}. {row['Название']}{artist_part} — {row['Баллы']} / 90")
 
-        # Если 90/90 — добавляем титул "Вкусняшка"
-        if row["Баллы"] == 90:
-            st.markdown(
-                "<div style='text-align:center; opacity:0.6; color:#ffcc33; font-weight:bold;'>🍻 Вкусняшка</div>",
-                unsafe_allow_html=True
-            )
-
         if isinstance(row["Рецензия"], str) and row["Рецензия"].strip():
             with st.expander("🗒 Читать рецензию"):
                 st.write(row["Рецензия"])
                 st.caption(f"Оценил: {row['Оценщик']}")
+                if row["Баллы"] == 90:
+                    st.markdown(
+                        "<div style='text-align:right; opacity:0.6; color:#ffcc33; font-weight:bold;'>🍻 Вкусняшка</div>",
+                        unsafe_allow_html=True
+                    )
         else:
             st.caption(f"Оценил: {row['Оценщик']}")
 
