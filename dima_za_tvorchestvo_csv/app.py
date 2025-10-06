@@ -100,6 +100,28 @@ if st.button("И чё у нас в итоге?"):
         score = flomaster_score(R, S, T, H, V)
         st.success(f"Итоговая оценка для {forms['who']} {name}: {score} / 90 🎯")
         st.balloons()
+        # Вкусняшка от Дмитрия Кузнецова — появляется только при 90 баллах
+    if score == 90:
+        st.markdown("""
+        <style>
+        @keyframes pulse {
+          0% { transform: scale(1); opacity: 0.8; }
+          50% { transform: scale(1.1); opacity: 1; color: #ffb700; text-shadow: 0 0 10px #ffd000; }
+          100% { transform: scale(1); opacity: 0.8; }
+        }
+        .vkusnyashka {
+          animation: pulse 2s infinite;
+          color: #ffcc00;
+          font-weight: bold;
+          font-size: 26px;
+          text-align: center;
+          margin-top: 20px;
+        }
+        </style>
+
+        <div class="vkusnyashka">💎 Вкусняшка от Дмитрия Кузнецова!</div>
+        <p style="text-align:center; color:#777;">Ооо нихуя</p>
+        """, unsafe_allow_html=True)
 
         new_row = {
             "Категория": category,
