@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import os
 import shutil
+import time
 
 # -----------------------------
 # Настройки
@@ -103,6 +104,9 @@ reviewer = st.text_input("Введите свой никнейм:")
 review_title = st.text_input("📝 Заголовок рецензии (по желанию):")
 review_text = st.text_area("✍️ Напиши рецензию (по желанию):")
 
+# -----------------------------
+# Обработка кнопки
+# -----------------------------
 if st.button("И чё у нас в итоге?"):
     if name.strip() == "":
         st.warning("⚠️ Ты чё Чупа? Введи название перед оценкой, не будь мышью!")
@@ -111,6 +115,47 @@ if st.button("И чё у нас в итоге?"):
         st.success(f"Итоговая оценка для {forms['who']} {name}: {score} / 90 🎯")
         st.balloons()
 
+        # === 🍻 ВКУСНЯШКА эффект ===
+        if score == 90:
+            st.markdown(
+                """
+                <div style='
+                    position:fixed;
+                    top:40%;
+                    left:50%;
+                    transform:translate(-50%, -50%);
+                    background:rgba(255,215,0,0.1);
+                    padding:40px;
+                    border-radius:20px;
+                    text-align:center;
+                    animation: fadeout 7s ease-in-out forwards, pulse 1.5s infinite alternate;
+                    z-index:9999;
+                '>
+                    <div style='font-size:48px; font-weight:bold; color:gold; text-shadow:0 0 20px gold;'>
+                        🍺 ВКУСНЯШКА!
+                    </div>
+                    <div style='font-size:16px; color:rgba(180,180,180,0.7); margin-top:6px;'>
+                        ООО НИХУЯ!!
+                    </div>
+                </div>
+                <style>
+                @keyframes fadeout {
+                    0% {opacity:1;}
+                    80% {opacity:1;}
+                    100% {opacity:0;}
+                }
+                @keyframes pulse {
+                    0% {text-shadow:0 0 15px gold;}
+                    100% {text-shadow:0 0 40px gold;}
+                }
+                </style>
+                """,
+                unsafe_allow_html=True,
+            )
+
+        # -----------------------------
+        # Сохраняем отзыв
+        # -----------------------------
         new_row = {
             "Категория": category,
             "Название": name.strip(),
@@ -126,6 +171,9 @@ if st.button("И чё у нас в итоге?"):
         df = ensure_df_columns(df)
         df.to_csv(CSV_FILE, index=False)
 
+# -----------------------------
+# Отображение отзывов
+# -----------------------------
 filtered_df = df[df["Категория"] == category].copy()
 if not filtered_df.empty:
     st.subheader(f"🏆 Квас Чарт: {forms['title']}")
@@ -143,23 +191,26 @@ if not filtered_df.empty:
                 st.markdown("---")
                 try:
                     st.markdown(
-        f"""
-        🎭 Рифмы / Образы: **{int(row['R'])}/10**  
-        🎵 Структура / Ритмика: **{int(row['S'])}/10**  
-        🔥 Реализация стиля: **{int(row['T'])}/10**  
-        💫 Индивидуальность / Харизма: **{int(row['H'])}/10**  
-        🌌 Атмосфера / Вайб: **{int(row['V'])}/10**
-        """
+                        f"""
+                        🎭 Рифмы / Образы: {int(row['R'])}/10  
+                        🎵 Структура / Ритмика: {int(row['S'])}/10  
+                        🔥 Реализация стиля: {int(row['T'])}/10  
+                        💫 Индивидуальность / Харизма: {int(row['H'])}/10  
+                        🌌 Атмосфера / Вайб: {int(row['V'])}/10
+                        """
                     )
                 except Exception:
                     st.info("🧩 Подробные оценки не найдены.")
-                except Exception:
-                    st.info("🧩 Подробные оценки не найдены.")
-                st.caption(f"Оценил: {row['Оценщик']}")
+                st.caption(
+                    f"Оценил: {row['Оценщик']} {'<span style=\"color:gold; font-size:0.8em;\">🍺 Вкусняшка</span>' if int(row['Баллы']) == 90 else ''}",
+                    unsafe_allow_html=True
+                )
         else:
             st.caption(f"Оценил: {row['Оценщик']}")
 else:
     st.info(f"👀 Пока нет ни одной оценки для категории {forms['title'].lower()}.")
+
+
 
 st.markdown("---")
 admin_code = st.text_input("🔐 Код администратора:", type="password")
