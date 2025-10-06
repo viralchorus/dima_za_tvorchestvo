@@ -311,8 +311,38 @@ if admin_code == "characterai":
                 with col2:
                     if st.button("❌ Отменить изменения", key=f"cancel_{orig_idx}"):
                         st.info("Отмена — просто закрой и открой запись заново.")
-    else:
+   else:
         st.info("Нет данных для отображения.")
+
+    # -----------------------------
+    # 🩹 Обслуживание данных (восстановление CSV)
+    # -----------------------------
+    st.markdown("### 🩹 Обслуживание данных")
+
+    if st.button("🩹 Восстановить таблицу данных"):
+        import shutil
+        BACKUP_FILE = "ratings_backup.csv"
+        try:
+            if os.path.exists(CSV_FILE):
+                shutil.copy(CSV_FILE, BACKUP_FILE)
+                st.success(f"✅ Резервная копия сохранена ({BACKUP_FILE})")
+
+            df_repair = pd.read_csv(CSV_FILE)
+
+            # добавляем недостающие колонки
+            for col in ["R", "S", "T", "H", "V"]:
+                if col not in df_repair.columns:
+                    df_repair[col] = 5
+
+            # приводим значения к числовым
+            for col in ["R", "S", "T", "H", "V"]:
+                df_repair[col] = pd.to_numeric(df_repair[col], errors="coerce").fillna(5).astype(int)
+
+            df_repair.to_csv(CSV_FILE, index=False)
+            st.success("🎨 Таблица успешно восстановлена и очищена от ошибок!")
+
+        except Exception as e:
+            st.error(f"⚠️ Ошибка при восстановлении: {e}")
 
 # -----------------------------
 # Нижняя подпись
