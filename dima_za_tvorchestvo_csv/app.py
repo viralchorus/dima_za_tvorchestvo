@@ -22,7 +22,7 @@ def flomaster_score(R, S, T, H, V):
 # -----------------------------
 # Структура CSV
 # -----------------------------
-EXPECTED_COLS = ["Категория", "Название", "Исполнитель", "Баллы", "Рецензия", "Оценщик", "R", "S", "T", "H", "V"]
+EXPECTED_COLS = ["Категория", "Название", "Исполнитель", "Баллы", "Заголовок", "Рецензия", "Оценщик", "R", "S", "T", "H", "V"]
 
 def ensure_df_columns(df):
     for c in EXPECTED_COLS:
@@ -116,6 +116,7 @@ st.markdown(
 # Поля пользователя
 # -----------------------------
 reviewer = st.text_input("Введите свой никнейм:")
+review_title = st.text_input("🖋️ Добавь заголовок к рецензии (по желанию):")
 review_text = st.text_area("✍️ Напиши рецензию (по желанию):")
 
 # -----------------------------
@@ -177,6 +178,7 @@ if st.button("И чё у нас в итоге?"):
             "Название": name.strip(),
             "Исполнитель": artist.strip() if isinstance(artist, str) else "",
             "Баллы": int(score),
+            "Заголовок": review_title.strip() if review_title.strip() else "",
             "Рецензия": review_text.strip(),
             "Оценщик": reviewer.strip() if reviewer.strip() else "Серая мышь (Не зареган)",
             "R": int(R), "S": int(S), "T": int(T), "H": int(H), "V": int(V)
@@ -202,6 +204,8 @@ if not filtered_df.empty:
 
         if isinstance(row["Рецензия"], str) and row["Рецензия"].strip():
             with st.expander("🗒 Читать рецензию"):
+                if isinstance(row.get("Заголовок", ""), str) and row["Заголовок"].strip():
+                    st.markdown(f"### {row['Заголовок'].strip()}")
                 st.write(row["Рецензия"])
                 st.markdown("---")
                 try:
@@ -214,8 +218,7 @@ if not filtered_df.empty:
                     )
                 except Exception:
                     st.info("🧩 Подробные оценки не найдены.")
-
-                if int(row["Баллы"]) == 90:
+                    if int(row["Баллы"]) == 90:
                     st.markdown(
                         "<div style='text-align:right; opacity:0.45; color:#ffcc33; font-weight:bold; margin-top:6px;'>🍻 Вкусняшка</div>",
                         unsafe_allow_html=True
@@ -243,6 +246,7 @@ if admin_code == "characterai":
                 new_cat = st.selectbox("Категория", ["Исполнитель", "Трек", "Альбом"], index=["Исполнитель","Трек","Альбом"].index(r["Категория"]), key=f"cat_{orig_idx}")
                 new_name = st.text_input("Название", value=r["Название"], key=f"name_{orig_idx}")
                 new_artist = st.text_input("Исполнитель", value=r["Исполнитель"], key=f"artist_{orig_idx}")
+                new_title = st.text_input("Заголовок", value=r["Заголовок"], key=f"title_{orig_idx}")
                 new_review = st.text_area("Рецензия", value=r["Рецензия"], key=f"review_{orig_idx}")
                 new_reviewer = st.text_input("Оценщик", value=r["Оценщик"], key=f"rev_{orig_idx}")
 
@@ -260,7 +264,7 @@ if admin_code == "characterai":
                 with col1:
                     if st.button("💾 Сохранить изменения", key=f"save_{orig_idx}"):
                         recalculated = flomaster_score(new_R, new_S, new_T, new_H, new_V)
-                        df.loc[orig_idx, ["Категория","Название","Исполнитель","Рецензия","Оценщик"]] = [new_cat, new_name, new_artist, new_review, new_reviewer]
+                        df.loc[orig_idx, ["Категория","Название","Исполнитель","Заголовок","Рецензия","Оценщик"]] = [new_cat,new_name,new_artist,new_title,new_review,new_reviewer]
                         df.loc[orig_idx, ["R","S","T","H","V","Баллы"]] = [new_R,new_S,new_T,new_H,new_V,recalculated]
                         df.to_csv(CSV_FILE, index=False)
                         st.success("✅ Изменения сохранены.")
@@ -269,50 +273,31 @@ if admin_code == "characterai":
                         df = df.drop(index=orig_idx)
                         df.to_csv(CSV_FILE, index=False)
                         st.warning("❌ Запись удалена.")
-
     else:
         st.info("Нет данных для отображения.")
 
-# -----------------------------
-    # Просмотр структуры таблицы (только для админа)
     # -----------------------------
-    st.markdown("### 📊 Структура таблицы данных")
+    # Восстановление данных (только для админа)
+    # -----------------------------
+    st.markdown("### 🩹 Обслуживание данных")
+    if st.button("🩹 Восстановить таблицу данных"):
+        try:
+            if os.path.exists(CSV_FILE):
+                shutil.copy(CSV_FILE, BACKUP_FILE)
+                st.success(f"✅ Резервная копия сохранена ({BACKUP_FILE})")
 
-    try:
-        df_preview = pd.read_csv(CSV_FILE)
-        st.write("Столбцы CSV:")
-        st.write(df_preview.columns.tolist())
-
-        with st.expander("👀 Показать первые строки таблицы"):
-            st.dataframe(df_preview.head())
-
-        st.caption("⚙️ Данные отображаются только для администратора.")
-
-    except Exception as e:
-        st.error(f"Ошибка при загрузке CSV: {e}")
+            df_repair = pd.read_csv(CSV_FILE)
+            for col in ["R","S","T","H","V"]:
+                if col not in df_repair.columns:
+                    df_repair[col] = 5
+            for col in ["R","S","T","H","V"]:
+                df_repair[col] = pd.to_numeric(df_repair[col], errors="coerce").fillna(5).astype(int)
+                df_repair.to_csv(CSV_FILE, index=False)
+            st.success("🎨 Таблица успешно восстановлена!")
+        except Exception as e:
+            st.error(f"⚠️ Ошибка: {e}")
 
 # -----------------------------
-# Восстановление данных
-# -----------------------------
-st.markdown("### 🩹 Обслуживание данных")
-if st.button("🩹 Восстановить таблицу данных"):
-    try:
-        if os.path.exists(CSV_FILE):
-            shutil.copy(CSV_FILE, BACKUP_FILE)
-            st.success(f"✅ Резервная копия сохранена ({BACKUP_FILE})")
-
-        df_repair = pd.read_csv(CSV_FILE)
-        for col in ["R","S","T","H","V"]:
-            if col not in df_repair.columns:
-                df_repair[col] = 5
-        for col in ["R","S","T","H","V"]:
-            df_repair[col] = pd.to_numeric(df_repair[col], errors="coerce").fillna(5).astype(int)
-
-        df_repair.to_csv(CSV_FILE, index=False)
-        st.success("🎨 Таблица успешно восстановлена!")
-    except Exception as e:
-        st.error(f"⚠️ Ошибка: {e}")
-        # -----------------------------
 # Нижняя подпись
 # -----------------------------
 st.markdown(
