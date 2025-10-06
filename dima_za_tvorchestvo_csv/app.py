@@ -101,29 +101,49 @@ if st.button("И чё у нас в итоге?"):
         st.success(f"Итоговая оценка для {forms['who']} {name}: {score} / 90 🎯")
         st.balloons()
 
-        # 💎 Вкусняшка — только если 90 баллов
+        # 🍻 Вкусняшка — только если 90 баллов
         if score == 90:
             st.markdown("""
             <style>
-            @keyframes pulse {
-              0% { transform: scale(1); opacity: 0.8; }
-              50% { transform: scale(1.1); opacity: 1; color: #ffb700; text-shadow: 0 0 10px #ffd000; }
-              100% { transform: scale(1); opacity: 0.8; }
+            @keyframes softGlow {
+              0% { text-shadow: 0 0 6px #ffd000, 0 0 12px #ffbb00; opacity: 0.9; }
+              50% { text-shadow: 0 0 10px #ffe966, 0 0 20px #ffcc33; opacity: 1; }
+              100% { text-shadow: 0 0 6px #ffd000, 0 0 12px #ffbb00; opacity: 0.9; }
+            }
+            @keyframes spark {
+              0%, 100% { opacity: 0; transform: scale(0.8) translateY(0px); }
+              50% { opacity: 1; transform: scale(1) translateY(-6px); }
             }
             .vkusnyashka {
-              animation: pulse 2s infinite;
-              color: #ffcc00;
+              animation: softGlow 3s ease-in-out infinite;
+              color: #ffcc33;
               font-weight: bold;
               font-size: 26px;
               text-align: center;
               margin-top: 20px;
+              position: relative;
             }
+            .spark {
+              position: absolute;
+              font-size: 14px;
+              color: #ffe680;
+              animation: spark 2s infinite;
+            }
+            .spark:nth-child(1) { left: 30%; animation-delay: 0s; }
+            .spark:nth-child(2) { left: 50%; animation-delay: 0.6s; }
+            .spark:nth-child(3) { left: 70%; animation-delay: 1.2s; }
             </style>
 
-            <div class="vkusnyashka">💎 Вкусняшка от Дмитрия Кузнецова!</div>
+            <div class="vkusnyashka">
+                🍻 Вкусняшка от Дмитрия Кузнецова!
+                <div class="spark">✦</div>
+                <div class="spark">✦</div>
+                <div class="spark">✦</div>
+            </div>
             <p style="text-align:center; color:#777;">Ооо нихуя</p>
             """, unsafe_allow_html=True)
-            # 🧾 Добавляем результат в CSV — независимо от оценки
+
+        # 🧾 Добавляем результат в CSV — независимо от оценки
         new_row = {
             "Категория": category,
             "Название": name,
@@ -189,7 +209,6 @@ if admin_code == "characterai":
                 st.write(f"Рецензия: {row['Рецензия']}")
                 st.write(f"Оценщик: {row['Оценщик']}")
 
-                # Кнопка удаления без появления ошибки
                 if st.button(f"🗑 Удалить запись #{i+1}", key=f"delete_{i}"):
                     df = df.drop(index=i)
                     df.to_csv(CSV_FILE, index=False)
