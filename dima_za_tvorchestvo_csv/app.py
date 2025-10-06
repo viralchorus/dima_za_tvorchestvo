@@ -2,6 +2,8 @@ import streamlit as st
 import pandas as pd
 import os
 
+CSV_FILE = "kvas_chart.csv"
+
 # -----------------------------
 # Функция вычисления оценки
 # -----------------------------
@@ -14,21 +16,16 @@ def flomaster_score(R, S, T, H, V):
 # -----------------------------
 # Инициализация CSV
 # -----------------------------
-CSV_FILE = "dima_za_tvorchestvo.csv"
+if not os.path.exists(CSV_FILE):
+    pd.DataFrame(columns=["Категория", "Исполнитель", "Название", "Баллы", "Рецензия"]).to_csv(CSV_FILE, index=False)
 
-if os.path.exists(CSV_FILE) and os.path.getsize(CSV_FILE) > 0:
-    old_df = pd.read_csv(CSV_FILE)
-else:
-    old_df = pd.DataFrame(columns=["Категория", "Название", "Баллы", "Рецензия", "Пользователь"])
-
-# -----------------------------
-# Хранилище для сессии
-# -----------------------------
-if "ratings" not in st.session_state:
-    st.session_state["ratings"] = old_df.copy()
+try:
+    df = pd.read_csv(CSV_FILE)
+except pd.errors.EmptyDataError:
+    df = pd.DataFrame(columns=["Категория", "Исполнитель", "Название", "Баллы", "Рецензия"])
 
 # -----------------------------
-# Падежи
+# Справочник падежей
 # -----------------------------
 category_forms = {
     "Исполнитель": {"who": "исполнителя", "title": "Исполнители"},
@@ -42,13 +39,14 @@ category_forms = {
 st.title("🎨 Дима За Творчество")
 st.write("Оцени музло как Дмитрий Кузнецов. (Только не намочи писюн!)")
 
-category = st.radio(
-    "Что сегодня в ротации krap'n'kvas?",
-    ["Исполнитель", "Трек", "Альбом"],
-    horizontal=True
-)
-
+category = st.radio("Что в ротации krap’n’kvas сегодня?", ["Исполнитель", "Трек", "Альбом"], horizontal=True)
 forms = category_forms[category]
+
+# Для треков и альбомов добавляем поле "Исполнитель"
+artist = ""
+if category in ["Трек", "Альбом"]:
+    artist = st.text_input("Введите псевдоним исполнителя:")
+
 name = st.text_input(f"Введите название {forms['who']}:")
 
 R = st.slider("🎭 Рифмы / Образы", 1, 10, 5)
@@ -58,56 +56,58 @@ H = st.slider("💫 Индивидуальность / Харизма", 1, 10, 5
 
 st.markdown("### 🌌 Атмосфера / Вайб")
 st.markdown(
-    "<div style='padding:8px; border:2px solid #6C63FF; border-radius:10px; background-color:#F3F0FF; color:#000000;'>"
+    "<div style='padding:8px; border:2px solid #6C63FF; border-radius:10px; background-color:#F3F0FF; color:#000;'>"
     "<b>Чем сильнее вайб — тем вкуснее квас. Этот критерий влияет на множитель общей оценки, бро!</b>"
     "</div>",
     unsafe_allow_html=True
 )
-V = st.slider("🌌 Атмосфера / Вайб", 1, 10, 5, key="vibe_slider")
+V = st.slider("🌌 Атмосфера / Вайб", 1, 10, 5)
 
-review = st.text_area("📝 Оставь рецензию (по желанию):", "")
+review = st.text_area("📝 Рецензия (необязательно):", placeholder="Напиши пару слов о вайбе, рифмах, структуре...")
 
-user = st.text_input("Введите свой никнейм (или оставь пустым — будешь Серой Мышью):")
-if not user.strip():
-    user = "Серая Мышь (Не зареган)"
-
-# -----------------------------
-# Кнопка подсчёта
-# -----------------------------
 if st.button("И чё у нас в итоге?"):
-    if name.strip() == "":
-        st.warning("⚠️ Ты чё, Чупа? Введи название перед оценкой!")
+    if name.strip() == "" or (category in ["Трек", "Альбом"] and artist.strip() == ""):
+        st.warning("⚠️ Введи все необходимые данные перед оценкой!")
     else:
         score = flomaster_score(R, S, T, H, V)
-        st.success(f"Итоговая оценка для {forms['who']} {name}: {score} / 90 🎯")
+        display_name = f"{artist} — {name}" if artist else name
+        st.success(f"Итоговая оценка для {forms['who']} {display_name}: {score} / 90 🎯")
         st.balloons()
 
-        new_row = {
+        new_row = pd.DataFrame([{
             "Категория": category,
+            "Исполнитель": artist if artist else "",
             "Название": name,
             "Баллы": score,
-            "Рецензия": review,
-            "Пользователь": user
-        }
-        st.session_state["ratings"] = pd.concat([st.session_state["ratings"], pd.DataFrame([new_row])], ignore_index=True)
-        st.session_state["ratings"].to_csv(CSV_FILE, index=False)
+            "Рецензия": review.strip() if review else ""
+        }])
+
+        df = pd.concat([df, new_row], ignore_index=True)
+        df.to_csv(CSV_FILE, index=False)
 
 # -----------------------------
-# Квас Чарт
+# Таблица (Квас Чарт)
 # -----------------------------
-df = st.session_state["ratings"]
-category_df = df[df["Категория"] == category]
-
-if not category_df.empty:
+filtered = df[df["Категория"] == category]
+if not filtered.empty:
     st.subheader(f"🏆 Квас Чарт: {forms['title']}")
-    sorted_df = category_df.sort_values(by="Баллы", ascending=False).reset_index(drop=True)
-    sorted_df.index += 1
-    st.dataframe(sorted_df[["Название", "Баллы", "Пользователь"]], use_container_width=True)
+    filtered = filtered.sort_values(by="Баллы", ascending=False).reset_index(drop=True)
+    filtered.index += 1
 
-    st.markdown("### ✍️ Рецензии")
-    for _, row in sorted_df.iterrows():
-        if isinstance(row["Рецензия"], str) and row["Рецензия"].strip():
-            with st.expander(f"💬 {row['Название']} ({row['Пользователь']}) — {row['Баллы']} / 90"):
+    for i, row in filtered.iterrows():
+        artist_part = f" — {row['Исполнитель']}" if row['Исполнитель'] else ""
+        st.markdown(f"**{i}. {row['Название']}{artist_part}** — {row['Баллы']} / 90")
+        if row["Рецензия"] and str(row["Рецензия"]).strip():
+            with st.expander("Показать рецензию"):
                 st.write(row["Рецензия"])
 else:
-    st.info(f"👀 Пока нет ни одной оценки для категории: {forms['title'].lower()}.")
+    st.info(f"👀 Пока нет ни одной оценки для категории {forms['title'].lower()}.")
+
+# -----------------------------
+# Сброс рейтинга
+# -----------------------------
+if st.button(f"Сбросить рейтинг ({forms['title'].lower()})"):
+    df = df[df["Категория"] != category]
+    df.to_csv(CSV_FILE, index=False)
+    st.success(f"Рейтинг для категории {forms['title']} сброшен.")
+
