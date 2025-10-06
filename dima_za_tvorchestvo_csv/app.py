@@ -106,13 +106,13 @@ if st.button("И чё у нас в итоге?"):
             st.markdown("""
             <style>
             @keyframes softGlow {
-              0% { text-shadow: 0 0 6px #ffd000, 0 0 12px #ffbb00; opacity: 0.9; }
-              50% { text-shadow: 0 0 10px #ffe966, 0 0 20px #ffcc33; opacity: 1; }
-              100% { text-shadow: 0 0 6px #ffd000, 0 0 12px #ffbb00; opacity: 0.9; }
+              0% { text-shadow: 0 0 6px #ffd000, 0 0 12px #ffbb00; opacity: 0.6; }
+              50% { text-shadow: 0 0 10px #ffe966, 0 0 20px #ffcc33; opacity: 0.9; }
+              100% { text-shadow: 0 0 6px #ffd000, 0 0 12px #ffbb00; opacity: 0.6; }
             }
             @keyframes spark {
               0%, 100% { opacity: 0; transform: scale(0.8) translateY(0px); }
-              50% { opacity: 1; transform: scale(1) translateY(-6px); }
+              50% { opacity: 0.5; transform: scale(1) translateY(-6px); }
             }
             .vkusnyashka {
               animation: softGlow 3s ease-in-out infinite;
@@ -127,6 +127,7 @@ if st.button("И чё у нас в итоге?"):
               position: absolute;
               font-size: 14px;
               color: #ffe680;
+              opacity: 0.6;
               animation: spark 2s infinite;
             }
             .spark:nth-child(1) { left: 30%; animation-delay: 0s; }
@@ -167,6 +168,14 @@ if not filtered_df.empty:
     for i, row in filtered_df.iterrows():
         artist_part = f" — {row['Исполнитель']}" if isinstance(row["Исполнитель"], str) and row["Исполнитель"].strip() else ""
         st.markdown(f"{i}. {row['Название']}{artist_part} — {row['Баллы']} / 90")
+
+        # Если 90/90 — добавляем титул "Вкусняшка"
+        if row["Баллы"] == 90:
+            st.markdown(
+                "<div style='text-align:center; opacity:0.6; color:#ffcc33; font-weight:bold;'>🍻 Вкусняшка</div>",
+                unsafe_allow_html=True
+            )
+
         if isinstance(row["Рецензия"], str) and row["Рецензия"].strip():
             with st.expander("🗒 Читать рецензию"):
                 st.write(row["Рецензия"])
